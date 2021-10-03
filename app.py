@@ -8,8 +8,8 @@ import bokeh.io
 import bokeh.plotting
 import bokeh.models
 
-import holoviews as hv
-hv.extension("bokeh")
+# import holoviews as hv
+# hv.extension("bokeh")
 
 import panel as pn
 pn.extension()
