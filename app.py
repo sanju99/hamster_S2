@@ -147,7 +147,7 @@ def zscore_heatmap(df):
                                low=-color_num_max,
                                high=color_num_max)
 
-    p = bokeh.plotting.figure(width=1350, 
+    p = bokeh.plotting.figure(width=1400, 
                               height=600, 
                               # title="Hamster S2 Z-Score Data",
                               x_range=list(df_hm.variable.unique()), 
