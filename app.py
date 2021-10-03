@@ -19,7 +19,7 @@ from bokeh.transform import transform
 
 
 # read in and process the dataframe
-df = pd.read_excel("Halfman_P1_100121_PH.xlsx")
+df = pd.read_csv("Halfman_P1.csv")
 
 combined_names = []
 
