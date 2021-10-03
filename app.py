@@ -52,81 +52,81 @@ df_plot["Ag"] = antigens
 df_plot["Ig_FcR"] = igs_fcrs
 
 
-@pn.depends(ag_select.param.value,
-            ig_fcr_choose.param.value)
-def ag_strip_plot(antigen=df_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
+# @pn.depends(ag_select.param.value,
+#             ig_fcr_choose.param.value)
+# def ag_strip_plot(antigen=df_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
     
-    if ig_or_fcr == "Ig Titer":
-        df_small = df_plot.loc[(df_plot.Ag == antigen) & (df_plot.Ig_FcR.str.contains("Ig")), :]
-        title = f"Titers of {antigen}-specific Antibodies"
-    else:
-        df_small = df_plot.loc[(df_plot.Ag == antigen) & (df_plot.Ig_FcR.str.contains("Fc")), :]
-        title = f"Binding of {antigen}-specific Antibodies to FcRs"
+#     if ig_or_fcr == "Ig Titer":
+#         df_small = df_plot.loc[(df_plot.Ag == antigen) & (df_plot.Ig_FcR.str.contains("Ig")), :]
+#         title = f"Titers of {antigen}-specific Antibodies"
+#     else:
+#         df_small = df_plot.loc[(df_plot.Ag == antigen) & (df_plot.Ig_FcR.str.contains("Fc")), :]
+#         title = f"Binding of {antigen}-specific Antibodies to FcRs"
         
-    strip = hv.Scatter(
-                data=df_small,
-                kdims=['Ig_FcR'],
-                vdims=["value", "Treatment", "Sample"],
-            ).opts(
-                color='Treatment',
-                line_color="black",
-                alpha=0.8,
-                jitter=0.3,
-                size=9,
-                xlabel="",
-                ylabel='Median Fluorescence',
-                title=title,
-                logy=True,
-                width=700,
-                height=450,
-                legend_position="bottom",
-                tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
-                cmap=['#1f77b4', 'darkorange', 'green'],
-                fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
-            )
+#     strip = hv.Scatter(
+#                 data=df_small,
+#                 kdims=['Ig_FcR'],
+#                 vdims=["value", "Treatment", "Sample"],
+#             ).opts(
+#                 color='Treatment',
+#                 line_color="black",
+#                 alpha=0.8,
+#                 jitter=0.3,
+#                 size=9,
+#                 xlabel="",
+#                 ylabel='Median Fluorescence',
+#                 title=title,
+#                 logy=True,
+#                 width=700,
+#                 height=450,
+#                 legend_position="bottom",
+#                 tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
+#                 cmap=['#1f77b4', 'darkorange', 'green'],
+#                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
+#             )
     
-    return strip
+#     return strip
 
 
-dash1 = pn.Row(pn.Column(pn.layout.VSpacer(), ag_select, pn.Spacer(height=50), ig_fcr_choose, pn.layout.VSpacer()), 
-               pn.Spacer(width=40),
-               ag_strip_plot)
+# dash1 = pn.Row(pn.Column(pn.layout.VSpacer(), ag_select, pn.Spacer(height=50), ig_fcr_choose, pn.layout.VSpacer()), 
+#                pn.Spacer(width=40),
+#                ag_strip_plot)
 
-@pn.depends(ab_fcr_select.param.value)
-def ig_fcr_strip_plot(ig_or_fcr=df_plot.Ig_FcR.values[0]):
+# @pn.depends(ab_fcr_select.param.value)
+# def ig_fcr_strip_plot(ig_or_fcr=df_plot.Ig_FcR.values[0]):
     
-    df_small = df_plot.loc[(df_plot.Ig_FcR == ig_or_fcr), :]
+#     df_small = df_plot.loc[(df_plot.Ig_FcR == ig_or_fcr), :]
     
-    if "Ig" in ig_or_fcr:
-        title = f"Antigen-Specific {ig_or_fcr} Titers"
-    else:
-        title = f"{ig_or_fcr} Binding Across Antigens"
+#     if "Ig" in ig_or_fcr:
+#         title = f"Antigen-Specific {ig_or_fcr} Titers"
+#     else:
+#         title = f"{ig_or_fcr} Binding Across Antigens"
     
-    strip = hv.Scatter(
-                data=df_small,
-                kdims=['Ag'],
-                vdims=["value", "Treatment", "Sample"],
-            ).opts(
-                color='Treatment',
-                line_color="black",
-                alpha=0.8,
-                jitter=0.3,
-                size=9,
-                xlabel="",
-                ylabel='Median Fluorescence',
-                title=title,
-                logy=True,
-                width=900,
-                height=450,
-                legend_position="bottom",
-                tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
-                cmap=['#1f77b4', 'darkorange', 'green'],
-                fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
-            )
+#     strip = hv.Scatter(
+#                 data=df_small,
+#                 kdims=['Ag'],
+#                 vdims=["value", "Treatment", "Sample"],
+#             ).opts(
+#                 color='Treatment',
+#                 line_color="black",
+#                 alpha=0.8,
+#                 jitter=0.3,
+#                 size=9,
+#                 xlabel="",
+#                 ylabel='Median Fluorescence',
+#                 title=title,
+#                 logy=True,
+#                 width=900,
+#                 height=450,
+#                 legend_position="bottom",
+#                 tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
+#                 cmap=['#1f77b4', 'darkorange', 'green'],
+#                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
+#             )
     
-    return strip
+#     return strip
 
-dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
+# dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
 
 
 def zscore_heatmap(df):
@@ -179,9 +179,11 @@ def zscore_heatmap(df):
 
 dash3 = zscore_heatmap(df)
 
-tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
-tab2 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
+# tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
+# tab2 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
-dashboard = pn.Tabs(('Strip Plots', tab1), ("Z-Score Heatmap", tab2))
+# dashboard = pn.Tabs(('Strip Plots', tab1), ("Z-Score Heatmap", tab2))
+
+dashboard = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
 dashboard.servable()
