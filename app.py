@@ -14,8 +14,7 @@ hv.extension("bokeh")
 import panel as pn
 pn.extension()
 
-from bokeh.models import (BasicTicker, ColorBar, ColumnDataSource,
-                          LinearColorMapper, PrintfTickFormatter)
+from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
 from bokeh.transform import transform
 
 
