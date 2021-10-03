@@ -1,12 +1,12 @@
-import numpy as np
-import pandas as pd
+# import numpy as np
+# import pandas as pd
 
-import seaborn as sns
-import scipy.stats as st
+# import seaborn as sns
+# import scipy.stats as st
 
-import bokeh.io
-import bokeh.plotting
-import bokeh.models
+# import bokeh.io
+# import bokeh.plotting
+# import bokeh.models
 
 # import holoviews as hv
 # hv.extension("bokeh")
@@ -14,42 +14,42 @@ import bokeh.models
 import panel as pn
 pn.extension()
 
-from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
-from bokeh.transform import transform
+# from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
+# from bokeh.transform import transform
 
 
-# read in and process the dataframe
-df = pd.read_excel("Halfman_P1_100121_PH.xlsx")
+# # read in and process the dataframe
+# df = pd.read_excel("Halfman_P1_100121_PH.xlsx")
 
-combined_names = []
+# combined_names = []
 
-for i in range(len(df)):
+# for i in range(len(df)):
     
-    if pd.isnull(df.Challenge.values[i]):
-        combined_names.append(df.Treatment.values[i])
-    else:
-        combined_names.append(df.Treatment.values[i] + "_" + df.Challenge.values[i])
+#     if pd.isnull(df.Challenge.values[i]):
+#         combined_names.append(df.Treatment.values[i])
+#     else:
+#         combined_names.append(df.Treatment.values[i] + "_" + df.Challenge.values[i])
         
-df["Treatment"] = combined_names
-del df["Challenge"]
+# df["Treatment"] = combined_names
+# del df["Challenge"]
 
 
 
 # make widgets
 
-ag_lst = [name.split("_")[0] for name in df.columns[3:]]
-ab_fcr_lst = [name.split("_")[1] for name in df.columns[3:]]
+# ag_lst = [name.split("_")[0] for name in df.columns[3:]]
+# ab_fcr_lst = [name.split("_")[1] for name in df.columns[3:]]
 
-# make selection widgets
-ag_select = pn.widgets.Select(name='Select Antigen', options=list(np.unique(ag_lst)))
-ab_fcr_select = pn.widgets.Select(name='Select Ig or FcR', options=list(np.unique(ab_fcr_lst)))
-ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'], button_type='primary')
+# # make selection widgets
+# ag_select = pn.widgets.Select(name='Select Antigen', options=list(np.unique(ag_lst)))
+# ab_fcr_select = pn.widgets.Select(name='Select Ig or FcR', options=list(np.unique(ab_fcr_lst)))
+# ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'], button_type='primary')
 
-df_plot = df.melt(id_vars=["Treatment", "Sample"])
+# df_plot = df.melt(id_vars=["Treatment", "Sample"])
 
-antigens, igs_fcrs = list(zip(*df_plot.variable.str.split("_")))
-df_plot["Ag"] = antigens
-df_plot["Ig_FcR"] = igs_fcrs
+# antigens, igs_fcrs = list(zip(*df_plot.variable.str.split("_")))
+# df_plot["Ag"] = antigens
+# df_plot["Ig_FcR"] = igs_fcrs
 
 
 # @pn.depends(ag_select.param.value,
@@ -129,61 +129,63 @@ df_plot["Ig_FcR"] = igs_fcrs
 # dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
 
 
-def zscore_heatmap(df):
+# def zscore_heatmap(df):
     
-    df_zscore = df.select_dtypes(include=np.number).apply(st.zscore)
-    df_zscore["Treatment"] = df.Treatment
-    df_zscore["Sample"] = df.Sample
+#     df_zscore = df.select_dtypes(include=np.number).apply(st.zscore)
+#     df_zscore["Treatment"] = df.Treatment
+#     df_zscore["Sample"] = df.Sample
 
-    df_zscore.sort_values(by="Treatment", inplace=True)
+#     df_zscore.sort_values(by="Treatment", inplace=True)
 
-    df_hm = df_zscore.melt(id_vars=["Sample", "Treatment"])
-    source = bokeh.models.ColumnDataSource(df_hm)
+#     df_hm = df_zscore.melt(id_vars=["Sample", "Treatment"])
+#     source = bokeh.models.ColumnDataSource(df_hm)
 
-    color_num_max = np.max([abs(df_hm.value.min()), abs(df_hm.value.max())])
+#     color_num_max = np.max([abs(df_hm.value.min()), abs(df_hm.value.max())])
 
-    colors = list(sns.diverging_palette(220, 20).as_hex())
-    mapper = LinearColorMapper(palette=colors, 
-                               low=-color_num_max,
-                               high=color_num_max)
+#     colors = list(sns.diverging_palette(220, 20).as_hex())
+#     mapper = LinearColorMapper(palette=colors, 
+#                                low=-color_num_max,
+#                                high=color_num_max)
 
-    p = bokeh.plotting.figure(width=1350, 
-                              height=600, 
-                              # title="Hamster S2 Z-Score Data",
-                              x_range=list(df_hm.variable.unique()), 
-                              y_range=list(df_hm.Sample.unique())[::-1],
-                              toolbar_location=None, x_axis_location="above",
-                              tools=[bokeh.models.HoverTool(tooltips=[('Group', '@Treatment'), ('Z-Score', '@value{0.000}'), ('', '@variable')])])
+#     p = bokeh.plotting.figure(width=1350, 
+#                               height=600, 
+#                               # title="Hamster S2 Z-Score Data",
+#                               x_range=list(df_hm.variable.unique()), 
+#                               y_range=list(df_hm.Sample.unique())[::-1],
+#                               toolbar_location=None, x_axis_location="above",
+#                               tools=[bokeh.models.HoverTool(tooltips=[('Group', '@Treatment'), ('Z-Score', '@value{0.000}'), ('', '@variable')])])
 
-    p.rect(x="variable", y="Sample", width=1, height=1, source=source,
-           line_color="white", 
-           fill_color=transform('value', mapper),
-          )
+#     p.rect(x="variable", y="Sample", width=1, height=1, source=source,
+#            line_color="white", 
+#            fill_color=transform('value', mapper),
+#           )
 
-    color_bar = ColorBar(color_mapper=mapper,
-                         ticker=BasicTicker(desired_num_ticks=len(colors)),
-                        )
+#     color_bar = ColorBar(color_mapper=mapper,
+#                          ticker=BasicTicker(desired_num_ticks=len(colors)),
+#                         )
 
-    p.add_layout(color_bar, 'right')
+#     p.add_layout(color_bar, 'right')
 
-    p.axis.axis_line_color = None
-    p.axis.major_tick_line_color = None
+#     p.axis.axis_line_color = None
+#     p.axis.major_tick_line_color = None
 
-    p.xaxis.major_label_text_font_size = "10px"
-    p.yaxis.major_label_text_font_size = "12px"
+#     p.xaxis.major_label_text_font_size = "10px"
+#     p.yaxis.major_label_text_font_size = "12px"
 
-    p.axis.major_label_standoff = 0
-    p.xaxis.major_label_orientation = 1.0
+#     p.axis.major_label_standoff = 0
+#     p.xaxis.major_label_orientation = 1.0
     
-    return p
+#     return p
 
-dash3 = zscore_heatmap(df)
+# dash3 = zscore_heatmap(df)
 
 # tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
 # tab2 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
 # dashboard = pn.Tabs(('Strip Plots', tab1), ("Z-Score Heatmap", tab2))
 
-dashboard = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
+# dashboard = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
+
+dashboard = pn.Column("Please fucking work!")
 
 dashboard.servable()
