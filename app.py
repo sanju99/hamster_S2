@@ -1,21 +1,21 @@
-# import numpy as np
-# import pandas as pd
+import numpy as np
+import pandas as pd
 
-# import seaborn as sns
-# import scipy.stats as st
+import seaborn as sns
+import scipy.stats as st
 
-# import bokeh.io
-# import bokeh.plotting
-# import bokeh.models
+import bokeh.io
+import bokeh.plotting
+import bokeh.models
 
-# import holoviews as hv
-# hv.extension("bokeh")
+import holoviews as hv
+hv.extension("bokeh")
 
 import panel as pn
 pn.extension()
 
-# from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
-# from bokeh.transform import transform
+from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
+from bokeh.transform import transform
 
 
 # # read in and process the dataframe
