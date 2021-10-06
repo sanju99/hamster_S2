@@ -10,6 +10,19 @@ import bokeh.models
 
 import holoviews as hv
 hv.extension("bokeh")
+from holoviews import opts
+
+opts.defaults(
+    opts.Scatter(
+        size=9,
+        line_color="black",
+        alpha=0.8,
+        jitter=0.3,
+        logy=True,
+        cmap=['#1f77b4', 'darkorange', 'green'],
+        tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])]
+    ),
+)
 
 import panel as pn
 pn.extension()
@@ -19,7 +32,7 @@ from bokeh.transform import transform
 
 
 # read in and process the dataframe
-df = pd.read_csv("Halfman_P1.csv")
+df = pd.read_csv("Halfmann_P1.csv")
 
 combined_names = []
 
@@ -37,30 +50,47 @@ del df["Challenge"]
 
 # make widgets
 
-ag_lst = [name.split("_")[0] for name in df.columns[3:]]
-ab_fcr_lst = [name.split("_")[1] for name in df.columns[3:]]
+luminex_cols = df.columns[df.columns.str.contains("_")]
+
+ag_lst = [name.split("_")[0] for name in luminex_cols]
+ab_fcr_lst = [name.split("_")[1] for name in luminex_cols]
 
 # make selection widgets
 ag_select = pn.widgets.Select(name='Select Antigen', options=list(np.unique(ag_lst)))
 ab_fcr_select = pn.widgets.Select(name='Select Ig or FcR', options=list(np.unique(ab_fcr_lst)))
 ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'], button_type='primary')
 
-df_plot = df.melt(id_vars=["Treatment", "Sample"])
+# split dataframe into Luminex and functional data
 
-antigens, igs_fcrs = list(zip(*df_plot.variable.str.split("_")))
-df_plot["Ag"] = antigens
-df_plot["Ig_FcR"] = igs_fcrs
+df_luminex = pd.concat([df.loc[:, df.columns.str.contains("_")], df[["Treatment", "Sample"]]], axis=1)
+df_func = df.loc[:, ~df.columns.str.contains("_")]
+
+# make the data tidy for plotting
+
+df_luminex_plot = df_luminex.melt(id_vars=["Treatment", "Sample"])
+df_func_plot = df_func.melt(id_vars=["Treatment", "Sample"])
+
+antigens, igs_fcrs = list(zip(*df_luminex_plot.variable.str.split("_")))
+df_luminex_plot["Ag"] = antigens
+df_luminex_plot["Ig_FcR"] = igs_fcrs
+
+# widget for the functional assay visualization
+assay_select = pn.widgets.Select(name="Select Functional Assay", options=list(df_func_plot.variable.unique()))
+
+treatment_split2 = ["Control" if 'Control' in df_func_plot.Treatment.values[i] else 'S2 Immunized' for i in range(len(df_func_plot))]
+df_func_plot["Group"] = treatment_split2
+
 
 
 @pn.depends(ag_select.param.value,
             ig_fcr_choose.param.value)
-def ag_strip_plot(antigen=df_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
+def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
     
     if ig_or_fcr == "Ig Titer":
-        df_small = df_plot.loc[(df_plot.Ag == antigen) & (df_plot.Ig_FcR.str.contains("Ig")), :]
+        df_small = df_luminex_plot.loc[(df_luminex_plot.Ag == antigen) & (df_luminex_plot.Ig_FcR.str.contains("Ig")), :]
         title = f"Titers of {antigen}-specific Antibodies"
     else:
-        df_small = df_plot.loc[(df_plot.Ag == antigen) & (df_plot.Ig_FcR.str.contains("Fc")), :]
+        df_small = df_luminex_plot.loc[(df_luminex_plot.Ag == antigen) & (df_luminex_plot.Ig_FcR.str.contains("Fc")), :]
         title = f"Binding of {antigen}-specific Antibodies to FcRs"
         
     strip = hv.Scatter(
@@ -69,19 +99,12 @@ def ag_strip_plot(antigen=df_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
                 vdims=["value", "Treatment", "Sample"],
             ).opts(
                 color='Treatment',
-                line_color="black",
-                alpha=0.8,
-                jitter=0.3,
-                size=9,
                 xlabel="",
                 ylabel='Median Fluorescence',
                 title=title,
-                logy=True,
                 width=700,
                 height=450,
                 legend_position="bottom",
-                tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
-                cmap=['#1f77b4', 'darkorange', 'green'],
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
@@ -93,9 +116,9 @@ dash1 = pn.Row(pn.Column(pn.layout.VSpacer(), ag_select, pn.Spacer(height=50), i
                ag_strip_plot)
 
 @pn.depends(ab_fcr_select.param.value)
-def ig_fcr_strip_plot(ig_or_fcr=df_plot.Ig_FcR.values[0]):
+def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
     
-    df_small = df_plot.loc[(df_plot.Ig_FcR == ig_or_fcr), :]
+    df_small = df_luminex_plot.loc[(df_luminex_plot.Ig_FcR == ig_or_fcr), :]
     
     if "Ig" in ig_or_fcr:
         title = f"Antigen-Specific {ig_or_fcr} Titers"
@@ -108,25 +131,75 @@ def ig_fcr_strip_plot(ig_or_fcr=df_plot.Ig_FcR.values[0]):
                 vdims=["value", "Treatment", "Sample"],
             ).opts(
                 color='Treatment',
-                line_color="black",
-                alpha=0.8,
-                jitter=0.3,
-                size=9,
                 xlabel="",
                 ylabel='Median Fluorescence',
                 title=title,
-                logy=True,
                 width=900,
                 height=450,
                 legend_position="bottom",
-                tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
-                cmap=['#1f77b4', 'darkorange', 'green'],
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
     return strip
 
 dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
+
+
+@pn.depends(assay_select.param.value)
+def func_strip_boxplot(func_assay=df_func_plot.variable.unique()[0]):
+    
+    strip = hv.Scatter(
+        data=df_func_plot.loc[df_func_plot.variable == func_assay],
+        kdims=['Treatment'],
+        vdims=['value', 'Sample'],
+    ).opts(
+        color='Treatment',
+        xlabel="",
+        title=f"{func_assay} Challenged Hamsters Separated",
+        ylabel='Median Fluorescence',
+        width=600,
+        height=500,
+        show_legend=False,
+    )
+
+    box = hv.BoxWhisker(
+        data=df_func_plot.loc[df_func_plot.variable == func_assay],
+        kdims=['Treatment'],
+        vdims=['value'],
+    ).opts(
+        box_fill_color='lightgray',
+        outlier_alpha=0,
+    )
+
+    return box * strip
+
+
+@pn.depends(assay_select.param.value)
+def stripbox_groups(func_assay=df_func_plot.variable.unique()[0]):
+    strip = hv.Scatter(
+        data=df_func_plot.loc[df_func_plot.variable == func_assay],
+        kdims=['Group'],
+        vdims=['value', 'Sample', 'Treatment'],
+    ).opts(
+        color='Treatment',
+        xlabel="",
+        title=f"{func_assay} Challenged Hamsters Combined",
+        ylabel='Median Fluorescence',
+        width=450,
+        height=500,
+        show_legend=False
+    )
+
+    box = hv.BoxWhisker(
+        data=df_func_plot.loc[df_func_plot.variable == func_assay],
+        kdims=['Group'],
+        vdims=['value'],
+    ).opts(
+        box_fill_color='lightgray',
+        outlier_alpha=0,
+    )
+
+    return box * strip
 
 
 def zscore_heatmap(df):
@@ -177,11 +250,15 @@ def zscore_heatmap(df):
     
     return p
 
+
 dash3 = zscore_heatmap(df)
 
 tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
-tab2 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
-dashboard = pn.Tabs(('Strip Plots', tab1), ("Z-Score Heatmap", tab2))
+tab2 = pn.Row(pn.layout.HSpacer(), pn.Column(assay_select, pn.Spacer(height=30), pn.Row(func_strip_boxplot, pn.Spacer(width=20), stripbox_groups)), pn.layout.HSpacer())
+
+tab3 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
+
+dashboard = pn.Tabs(('Luminex Plots', tab1), ("Functional Assays", tab2), ("Z-Score Heatmap", tab3))
 
 dashboard.servable()
