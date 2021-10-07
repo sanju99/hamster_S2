@@ -19,6 +19,8 @@ opts.defaults(
         alpha=0.8,
         jitter=0.3,
         logy=True,
+        xlabel="",
+        ylabel='MFI',
         cmap=['#1f77b4', 'darkorange', 'green'],
         tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
         legend_position="bottom"
@@ -101,8 +103,6 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
                 vdims=["value", "Treatment", "Sample"],
             ).opts(
                 color='Treatment',
-                xlabel="",
-                ylabel='Median Fluorescence',
                 title=title,
                 width=700,
                 height=500,
@@ -132,8 +132,6 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
                 vdims=["value", "Treatment", "Sample"],
             ).opts(
                 color='Treatment',
-                xlabel="",
-                ylabel='Median Fluorescence',
                 title=title,
                 width=900,
                 height=500,
@@ -157,9 +155,7 @@ def func_strip_boxplot(func_assay=df_func_plot.variable.unique()[0],
             vdims=['value', 'Sample'],
         ).opts(
             color='Treatment',
-            xlabel="",
             title=f"{func_assay} Challenged Hamsters Separated",
-            ylabel='Median Fluorescence',
             width=700,
             height=500,
         )
@@ -181,9 +177,7 @@ def func_strip_boxplot(func_assay=df_func_plot.variable.unique()[0],
             vdims=['value', 'Sample', 'Treatment'],
         ).opts(
             color='Treatment',
-            xlabel="",
             title=f"{func_assay} Challenged Hamsters Combined",
-            ylabel='Median Fluorescence',
             width=700,
             height=500,
         )
