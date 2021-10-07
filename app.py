@@ -20,7 +20,8 @@ opts.defaults(
         jitter=0.3,
         logy=True,
         cmap=['#1f77b4', 'darkorange', 'green'],
-        tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])]
+        tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
+        legend_position="bottom"
     ),
 )
 
@@ -76,6 +77,7 @@ df_luminex_plot["Ig_FcR"] = igs_fcrs
 
 # widget for the functional assay visualization
 assay_select = pn.widgets.Select(name="Select Functional Assay", options=list(df_func_plot.variable.unique()))
+groups_toggle = pn.widgets.Toggle(name='Combine Challenged Groups', button_type='success')
 
 treatment_split2 = ["Control" if 'Control' in df_func_plot.Treatment.values[i] else 'S2 Immunized' for i in range(len(df_func_plot))]
 df_func_plot["Group"] = treatment_split2
@@ -103,8 +105,7 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
                 ylabel='Median Fluorescence',
                 title=title,
                 width=700,
-                height=450,
-                legend_position="bottom",
+                height=500,
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
@@ -135,8 +136,7 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
                 ylabel='Median Fluorescence',
                 title=title,
                 width=900,
-                height=450,
-                legend_position="bottom",
+                height=500,
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
@@ -145,59 +145,57 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
 dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
 
 
-@pn.depends(assay_select.param.value)
-def func_strip_boxplot(func_assay=df_func_plot.variable.unique()[0]):
+@pn.depends(assay_select.param.value, groups_toggle.param.value)
+def func_strip_boxplot(func_assay=df_func_plot.variable.unique()[0],
+                       combine_imm_groups=False):
     
-    strip = hv.Scatter(
-        data=df_func_plot.loc[df_func_plot.variable == func_assay],
-        kdims=['Treatment'],
-        vdims=['value', 'Sample'],
-    ).opts(
-        color='Treatment',
-        xlabel="",
-        title=f"{func_assay} Challenged Hamsters Separated",
-        ylabel='Median Fluorescence',
-        width=600,
-        height=500,
-        show_legend=False,
-    )
+    if combine_imm_groups == False:
+    
+        strip = hv.Scatter(
+            data=df_func_plot.loc[df_func_plot.variable == func_assay],
+            kdims=['Treatment'],
+            vdims=['value', 'Sample'],
+        ).opts(
+            color='Treatment',
+            xlabel="",
+            title=f"{func_assay} Challenged Hamsters Separated",
+            ylabel='Median Fluorescence',
+            width=700,
+            height=500,
+        )
 
-    box = hv.BoxWhisker(
-        data=df_func_plot.loc[df_func_plot.variable == func_assay],
-        kdims=['Treatment'],
-        vdims=['value'],
-    ).opts(
-        box_fill_color='lightgray',
-        outlier_alpha=0,
-    )
+        box = hv.BoxWhisker(
+            data=df_func_plot.loc[df_func_plot.variable == func_assay],
+            kdims=['Treatment'],
+            vdims=['value'],
+        ).opts(
+            box_fill_color='lightgray',
+            outlier_alpha=0,
+        )
+    
+    else:
+    
+        strip = hv.Scatter(
+            data=df_func_plot.loc[df_func_plot.variable == func_assay],
+            kdims=['Group'],
+            vdims=['value', 'Sample', 'Treatment'],
+        ).opts(
+            color='Treatment',
+            xlabel="",
+            title=f"{func_assay} Challenged Hamsters Combined",
+            ylabel='Median Fluorescence',
+            width=700,
+            height=500,
+        )
 
-    return box * strip
-
-
-@pn.depends(assay_select.param.value)
-def stripbox_groups(func_assay=df_func_plot.variable.unique()[0]):
-    strip = hv.Scatter(
-        data=df_func_plot.loc[df_func_plot.variable == func_assay],
-        kdims=['Group'],
-        vdims=['value', 'Sample', 'Treatment'],
-    ).opts(
-        color='Treatment',
-        xlabel="",
-        title=f"{func_assay} Challenged Hamsters Combined",
-        ylabel='Median Fluorescence',
-        width=450,
-        height=500,
-        show_legend=False
-    )
-
-    box = hv.BoxWhisker(
-        data=df_func_plot.loc[df_func_plot.variable == func_assay],
-        kdims=['Group'],
-        vdims=['value'],
-    ).opts(
-        box_fill_color='lightgray',
-        outlier_alpha=0,
-    )
+        box = hv.BoxWhisker(
+            data=df_func_plot.loc[df_func_plot.variable == func_assay],
+            kdims=['Group'],
+            vdims=['value'],
+        ).opts(
+            box_fill_color='lightgray',
+            outlier_alpha=0,
+        )
 
     return box * strip
 
@@ -255,7 +253,12 @@ dash3 = zscore_heatmap(df)
 
 tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
 
-tab2 = pn.Row(pn.layout.HSpacer(), pn.Column(assay_select, pn.Spacer(height=30), pn.Row(func_strip_boxplot, pn.Spacer(width=20), stripbox_groups)), pn.layout.HSpacer())
+
+tab2 = pn.Row(pn.layout.HSpacer(),
+              pn.Column(pn.layout.VSpacer(), assay_select, pn.Spacer(height=50), groups_toggle, pn.layout.VSpacer()), 
+              pn.Spacer(width=40),
+              func_strip_boxplot,
+              pn.layout.HSpacer())
 
 tab3 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
