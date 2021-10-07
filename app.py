@@ -12,6 +12,13 @@ import holoviews as hv
 hv.extension("bokeh")
 from holoviews import opts
 
+import panel as pn
+pn.extension()
+
+from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
+from bokeh.transform import transform
+
+
 opts.defaults(
     opts.Scatter(
         size=9,
@@ -26,13 +33,6 @@ opts.defaults(
         legend_position="bottom"
     ),
 )
-
-import panel as pn
-pn.extension()
-
-from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
-from bokeh.transform import transform
-
 
 # read in and process the dataframe
 df = pd.read_csv("Halfmann_P1.csv")
