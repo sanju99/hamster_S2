@@ -19,21 +19,6 @@ from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFor
 from bokeh.transform import transform
 
 
-opts.defaults(
-    opts.Scatter(
-        size=9,
-        line_color="black",
-        alpha=0.8,
-        jitter=0.3,
-        logy=True,
-        xlabel="",
-        ylabel='MFI',
-        cmap=['#1f77b4', 'darkorange', 'green'],
-        tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
-        legend_position="bottom"
-    ),
-)
-
 # read in and process the dataframe
 df = pd.read_csv("Halfmann_P1.csv")
 
@@ -84,6 +69,21 @@ groups_toggle = pn.widgets.Toggle(name='Combine Challenged Groups', button_type=
 treatment_split2 = ["Control" if 'Control' in df_func_plot.Treatment.values[i] else 'S2 Immunized' for i in range(len(df_func_plot))]
 df_func_plot["Group"] = treatment_split2
 
+
+opts.defaults(
+    opts.Scatter(
+        size=9,
+        line_color="black",
+        alpha=0.8,
+        jitter=0.3,
+        logy=True,
+        xlabel="",
+        ylabel='MFI',
+        cmap=['#1f77b4', 'darkorange', 'green'],
+        tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
+        legend_position="bottom"
+    ),
+)
 
 
 @pn.depends(ag_select.param.value,
