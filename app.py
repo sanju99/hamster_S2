@@ -22,6 +22,9 @@ from bokeh.transform import transform
 # read in and process the dataframe
 df = pd.read_csv("Halfmann_P1.csv")
 
+# remove empty columns
+df = df[df.columns[~df.columns.str.contains("Unnamed")]]
+
 combined_names = []
 
 for i in range(len(df)):
