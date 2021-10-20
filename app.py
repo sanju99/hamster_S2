@@ -43,11 +43,13 @@ ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'],
 
 df_luminex = pd.concat([df.loc[:, df.columns.str.contains("_")], df[["Treatment", "Challenge", "Sample"]]], axis=1)
 df_func = df.loc[:, ~df.columns.str.contains("_")]
+df_challenge = pd.concat([df.loc[:, df.columns.str.contains("pfu")], df[["Treatment", "Challenge", "Sample"]]], axis=1)
 
 # make the data tidy for plotting
 
 df_luminex_plot = df_luminex.melt(id_vars=["Treatment", "Challenge", "Sample"])
 df_func_plot = df_func.melt(id_vars=["Treatment", "Challenge", "Sample"])
+df_challenge_plot = df_func.melt(id_vars=["Treatment", "Challenge", "Sample"])
 
 antigens, igs_fcrs = list(zip(*df_luminex_plot.variable.str.split("_")))
 df_luminex_plot["Ag"] = antigens
@@ -65,6 +67,7 @@ opts.defaults(
         ylabel='MFI',
         cmap=bokeh.palettes.Category10[10],
         tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
+        fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
     ),
 )
 
@@ -75,10 +78,10 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
     
     if ig_or_fcr == "Ig Titer":
         df_small = df_luminex_plot.loc[(df_luminex_plot.Ag == antigen) & (df_luminex_plot.Ig_FcR.str.contains("Ig")), :]
-        title = f"Titers of {antigen}-specific Antibodies"
+        title = f"{antigen}-specific Antibodies"
     else:
         df_small = df_luminex_plot.loc[(df_luminex_plot.Ag == antigen) & (df_luminex_plot.Ig_FcR.str.contains("Fc")), :]
-        title = f"Binding of {antigen}-specific Antibodies to FcRs"
+        title = f"{antigen}-specific Antibodies to FcRs"
         
     strip = hv.Scatter(
                 data=df_small,
@@ -87,13 +90,13 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
             ).opts(
                 color='Treatment',
                 title=title,
-                width=800,
-                height=500,
+                width=750,
+                height=400,
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
     p = hv.render(strip)
-    p.legend.location = "right"
+    p.add_layout(p.legend[0], 'right')
     p.toolbar_location = "above"
     
     return p
@@ -121,12 +124,11 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
                 color='Treatment',
                 title=title,
                 width=1100,
-                height=500,
-                fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
+                height=400,
             )
     
     p = hv.render(strip)
-    p.legend.location = "right"
+    p.add_layout(p.legend[0], 'right')
     p.toolbar_location = "above"
     
     return p
@@ -134,7 +136,7 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
 dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
 
 
-def func_strip_boxplot():
+def func_stripbox(df):
             
     assay_abbreviation_dict = {"ADCD": "Complement Deposition",
                                "mADCP": "J774A Monocyte Phagocytosis",
@@ -146,9 +148,7 @@ def func_strip_boxplot():
     
     for func_assay in assay_abbreviation_dict.keys():
 
-        df_small = df_func_plot.loc[df_func_plot.variable == func_assay]
-
-        source = bokeh.models.ColumnDataSource(df_small)
+        df_small = df.loc[df.variable == func_assay]
 
         p = iqplot.stripbox(data=df_small, 
                             q="value", 
@@ -157,10 +157,10 @@ def func_strip_boxplot():
                             jitter=True,
                             marker_kwargs={"size": 8, "line_color": "black"},
                             jitter_kwargs={'width': 0.25},
-                            #tooltips=[('Sample', '@Sample'), ('Fluor', '@value{0.000}')],
+                            tooltips=[('Sample', '@Sample')],
                             toolbar_location="right",
-                            height=450,
-                            width=550,
+                            height=400,
+                            width=500,
                             y_axis_type="log",
                             x_axis_label="Group",
                             y_axis_label="MFI",
@@ -168,6 +168,60 @@ def func_strip_boxplot():
                            )
 
         plots.append(p)
+        
+    return bokeh.layouts.gridplot(plots, ncols=2, merge_tools=False)
+
+
+abbreviation_dict = {"Lung (log10 pfu/g)": "Lung Viral Load",
+                     "NT (log10 pfu/g)": "Nasal Turbinate Viral Load"}
+
+def viral_load_stripbox(df):
+
+    plots = []
+
+    for location in abbreviation_dict.keys():
+
+        df_small = df.loc[df.variable == location]
+        
+        # make box plot
+        box = hv.BoxWhisker(
+            data=df_small,
+            kdims=['Treatment', 'Challenge'],
+            vdims='value',
+        ).opts(
+            ylabel="Log10 (PFU/g)",
+            whisker_color='gray',
+            box_line_color="gray",
+            box_fill_color="white",
+            height=500,
+            width=600,
+            outlier_alpha=0,
+            title = abbreviation_dict[location],
+            fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
+        )
+
+        # extract bokeh object
+        p = hv.render(box)
+        p.toolbar_location = "above"
+                
+        plots.append(iqplot.strip(p=p,
+                            data=df_small, 
+                            q="value", 
+                            cats=["Treatment", "Challenge"], 
+                            q_axis='y', 
+                            jitter=True,
+                            marker_kwargs={"size": 8, "line_color": "black"},
+                            jitter_kwargs={"width": 0.25},
+                            toolbar_location="above",
+                            height=450,
+                            width=550,
+                            y_axis_type="log",
+                            x_axis_label="Challenge Variant",
+                            y_axis_label="MFI",
+                            title=abbreviation_dict[location],
+                            tooltips=[('Sample', '@Sample')]
+                           )
+                    )
         
     return bokeh.layouts.gridplot(plots, ncols=2, merge_tools=False)
 
@@ -225,17 +279,12 @@ dash3 = zscore_heatmap(df)
 
 tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
 
+tab2 = pn.Row(pn.layout.HSpacer(), func_stripbox(df_func_plot), pn.layout.HSpacer())
 
-# tab2 = pn.Row(pn.layout.HSpacer(),
-#               pn.Column(pn.layout.VSpacer(), assay_select, pn.Spacer(height=50), pn.layout.VSpacer()), 
-#               pn.Spacer(width=40),
-#               func_strip_boxplot,
-#               pn.layout.HSpacer())
+tab3 = pn.Row(pn.layout.HSpacer(), viral_load_stripbox(df_challenge_plot), pn.layout.HSpacer())
 
-tab2 = pn.Row(pn.layout.HSpacer(), func_strip_boxplot(), pn.layout.HSpacer())
+tab4 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
-tab3 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
-
-dashboard = pn.Tabs(('Luminex Plots', tab1), ("Functional Assays", tab2), ("Z-Score Heatmap", tab3))
+dashboard = pn.Tabs(('Luminex Plots', tab1), ("Functional Assays", tab2), ("Viral Loads", tab3), ("Z-Score Heatmap", tab4))
 
 dashboard.servable()
