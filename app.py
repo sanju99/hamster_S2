@@ -41,15 +41,15 @@ ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'],
 
 # split dataframe into Luminex and functional data
 
-df_luminex = pd.concat([df.loc[:, df.columns.str.contains("_")], df[["Treatment", "Challenge", "Sample"]]], axis=1)
+df_luminex = pd.concat([df.loc[:, df.columns.str.contains("_")], df[["Immunization", "Challenge", "Sample"]]], axis=1)
 df_func = df.loc[:, ~df.columns.str.contains("_")]
-df_challenge = pd.concat([df.loc[:, df.columns.str.contains("pfu")], df[["Treatment", "Challenge", "Sample"]]], axis=1)
+df_challenge = pd.concat([df.loc[:, df.columns.str.contains("pfu")], df[["Immunization", "Challenge", "Sample"]]], axis=1)
 
 # make the data tidy for plotting
 
-df_luminex_plot = df_luminex.melt(id_vars=["Treatment", "Challenge", "Sample"])
-df_func_plot = df_func.melt(id_vars=["Treatment", "Challenge", "Sample"])
-df_challenge_plot = df_func.melt(id_vars=["Treatment", "Challenge", "Sample"])
+df_luminex_plot = df_luminex.melt(id_vars=["Immunization", "Challenge", "Sample"])
+df_func_plot = df_func.melt(id_vars=["Immunization", "Challenge", "Sample"])
+df_challenge_plot = df_func.melt(id_vars=["Immunization", "Challenge", "Sample"])
 
 antigens, igs_fcrs = list(zip(*df_luminex_plot.variable.str.split("_")))
 df_luminex_plot["Ag"] = antigens
@@ -86,9 +86,9 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
     strip = hv.Scatter(
                 data=df_small,
                 kdims=['Ig_FcR'],
-                vdims=["value", "Treatment", "Sample"],
+                vdims=["value", "Immunization", "Sample"],
             ).opts(
-                color='Treatment',
+                color='Immunization',
                 title=title,
                 width=750,
                 height=400,
@@ -98,6 +98,7 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
     p = hv.render(strip)
     p.add_layout(p.legend[0], 'right')
     p.toolbar_location = "above"
+    p.legend.title = "Immunization"
     
     return p
 
@@ -119,9 +120,9 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
     strip = hv.Scatter(
                 data=df_small,
                 kdims=['Ag'],
-                vdims=["value", "Treatment", "Sample"],
+                vdims=["value", "Immunization", "Sample"],
             ).opts(
-                color='Treatment',
+                color='Immunization',
                 title=title,
                 width=1100,
                 height=400,
@@ -130,6 +131,7 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
     p = hv.render(strip)
     p.add_layout(p.legend[0], 'right')
     p.toolbar_location = "above"
+    p.legend.title = "Immunization"
     
     return p
 
@@ -152,7 +154,7 @@ def func_stripbox(df):
 
         p = iqplot.stripbox(data=df_small, 
                             q="value", 
-                            cats="Treatment", 
+                            cats="Immunization", 
                             q_axis='y', 
                             jitter=True,
                             marker_kwargs={"size": 8, "line_color": "black"},
@@ -186,7 +188,7 @@ def viral_load_stripbox(df):
         # make box plot
         box = hv.BoxWhisker(
             data=df_small,
-            kdims=['Treatment', 'Challenge'],
+            kdims=['Immunization', 'Challenge'],
             vdims='value',
         ).opts(
             ylabel="Log10 (PFU/g)",
@@ -207,7 +209,7 @@ def viral_load_stripbox(df):
         plots.append(iqplot.strip(p=p,
                             data=df_small, 
                             q="value", 
-                            cats=["Treatment", "Challenge"], 
+                            cats=["Immunization", "Challenge"], 
                             q_axis='y', 
                             jitter=True,
                             marker_kwargs={"size": 8, "line_color": "black"},
@@ -229,12 +231,12 @@ def viral_load_stripbox(df):
 def zscore_heatmap(df):
     
     df_zscore = df.select_dtypes(include=np.number).apply(st.zscore)
-    df_zscore["Treatment"] = df.Treatment
+    df_zscore["Immunization"] = df.Immunization
     df_zscore["Sample"] = df.Sample
 
-    df_zscore.sort_values(by="Treatment", inplace=True)
+    df_zscore.sort_values(by="Immunization", inplace=True)
 
-    df_hm = df_zscore.melt(id_vars=["Sample", "Treatment"])
+    df_hm = df_zscore.melt(id_vars=["Sample", "Immunization"])
     source = bokeh.models.ColumnDataSource(df_hm)
 
     color_num_max = np.max([abs(df_hm.value.min()), abs(df_hm.value.max())])
@@ -250,7 +252,7 @@ def zscore_heatmap(df):
                               x_range=list(df_hm.variable.unique()), 
                               y_range=list(df_hm.Sample.unique())[::-1],
                               toolbar_location=None, x_axis_location="above",
-                              tools=[bokeh.models.HoverTool(tooltips=[('Treatment', '@Treatment'), ('Z-Score', '@value{0.000}'), ('', '@variable')])])
+                              tools=[bokeh.models.HoverTool(tooltips=[('Immunization', '@Immunization'), ('Z-Score', '@value{0.000}'), ('', '@variable')])])
 
     p.rect(x="variable", y="Sample", width=1, height=1, source=source,
            line_color="white", 
