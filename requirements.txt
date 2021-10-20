@@ -6,4 +6,3 @@ bokeh
 holoviews
 panel
 tornado
-iqplot
