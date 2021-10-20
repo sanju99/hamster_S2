@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-import seaborn as sns
 import scipy.stats as st
+import seaborn as sns
 
 import bokeh.io
 import bokeh.plotting
@@ -11,6 +11,8 @@ import bokeh.models
 import holoviews as hv
 hv.extension("bokeh")
 from holoviews import opts
+
+import iqplot
 
 import panel as pn
 pn.extension()
@@ -24,20 +26,6 @@ df = pd.read_csv("Halfmann_P1.csv")
 
 # remove empty columns
 df = df[df.columns[~df.columns.str.contains("Unnamed")]]
-
-combined_names = []
-
-for i in range(len(df)):
-    
-    if pd.isnull(df.Challenge.values[i]):
-        combined_names.append(df.Treatment.values[i])
-    else:
-        combined_names.append(df.Treatment.values[i] + "_" + df.Challenge.values[i])
-        
-df["Treatment"] = combined_names
-del df["Challenge"]
-
-
 
 # make widgets
 
@@ -53,24 +41,17 @@ ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'],
 
 # split dataframe into Luminex and functional data
 
-df_luminex = pd.concat([df.loc[:, df.columns.str.contains("_")], df[["Treatment", "Sample"]]], axis=1)
+df_luminex = pd.concat([df.loc[:, df.columns.str.contains("_")], df[["Treatment", "Challenge", "Sample"]]], axis=1)
 df_func = df.loc[:, ~df.columns.str.contains("_")]
 
 # make the data tidy for plotting
 
-df_luminex_plot = df_luminex.melt(id_vars=["Treatment", "Sample"])
-df_func_plot = df_func.melt(id_vars=["Treatment", "Sample"])
+df_luminex_plot = df_luminex.melt(id_vars=["Treatment", "Challenge", "Sample"])
+df_func_plot = df_func.melt(id_vars=["Treatment", "Challenge", "Sample"])
 
 antigens, igs_fcrs = list(zip(*df_luminex_plot.variable.str.split("_")))
 df_luminex_plot["Ag"] = antigens
 df_luminex_plot["Ig_FcR"] = igs_fcrs
-
-# widget for the functional assay visualization
-assay_select = pn.widgets.Select(name="Select Functional Assay", options=list(df_func_plot.variable.unique()))
-groups_toggle = pn.widgets.Toggle(name='Combine Challenged Groups', button_type='success')
-
-treatment_split2 = ["Control" if 'Control' in df_func_plot.Treatment.values[i] else 'S2 Immunized' for i in range(len(df_func_plot))]
-df_func_plot["Group"] = treatment_split2
 
 
 opts.defaults(
@@ -82,9 +63,8 @@ opts.defaults(
         logy=True,
         xlabel="",
         ylabel='MFI',
-        cmap=['#1f77b4', 'darkorange', 'green'],
+        cmap=bokeh.palettes.Category10[10],
         tools=[bokeh.models.HoverTool(tooltips=[('Sample', '@Sample'), ('Fluor', '@value{int}')])],
-        legend_position="bottom"
     ),
 )
 
@@ -107,12 +87,16 @@ def ag_strip_plot(antigen=df_luminex_plot.Ag.values[0], ig_or_fcr="Ig Titer"):
             ).opts(
                 color='Treatment',
                 title=title,
-                width=700,
+                width=800,
                 height=500,
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
-    return strip
+    p = hv.render(strip)
+    p.legend.location = "right"
+    p.toolbar_location = "above"
+    
+    return p
 
 
 dash1 = pn.Row(pn.Column(pn.layout.VSpacer(), ag_select, pn.Spacer(height=50), ig_fcr_choose, pn.layout.VSpacer()), 
@@ -136,65 +120,56 @@ def ig_fcr_strip_plot(ig_or_fcr=df_luminex_plot.Ig_FcR.values[0]):
             ).opts(
                 color='Treatment',
                 title=title,
-                width=900,
+                width=1100,
                 height=500,
                 fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
             )
     
-    return strip
+    p = hv.render(strip)
+    p.legend.location = "right"
+    p.toolbar_location = "above"
+    
+    return p
 
 dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
 
 
-@pn.depends(assay_select.param.value, groups_toggle.param.value)
-def func_strip_boxplot(func_assay=df_func_plot.variable.unique()[0],
-                       combine_imm_groups=False):
-    
-    if combine_imm_groups == False:
-    
-        strip = hv.Scatter(
-            data=df_func_plot.loc[df_func_plot.variable == func_assay],
-            kdims=['Treatment'],
-            vdims=['value', 'Sample'],
-        ).opts(
-            color='Treatment',
-            title=f"{func_assay} Challenged Hamsters Separated",
-            width=700,
-            height=500,
-        )
+def func_strip_boxplot():
+            
+    assay_abbreviation_dict = {"ADCD": "Complement Deposition",
+                               "mADCP": "J774A Monocyte Phagocytosis",
+                               "hADCP": "THP-1 Monocyte Phagocytosis",
+                               "hADNP": "Human Neutrophil Phagocytosis"}
 
-        box = hv.BoxWhisker(
-            data=df_func_plot.loc[df_func_plot.variable == func_assay],
-            kdims=['Treatment'],
-            vdims=['value'],
-        ).opts(
-            box_fill_color='lightgray',
-            outlier_alpha=0,
-        )
     
-    else:
+    plots = []
     
-        strip = hv.Scatter(
-            data=df_func_plot.loc[df_func_plot.variable == func_assay],
-            kdims=['Group'],
-            vdims=['value', 'Sample', 'Treatment'],
-        ).opts(
-            color='Treatment',
-            title=f"{func_assay} Challenged Hamsters Combined",
-            width=700,
-            height=500,
-        )
+    for func_assay in assay_abbreviation_dict.keys():
 
-        box = hv.BoxWhisker(
-            data=df_func_plot.loc[df_func_plot.variable == func_assay],
-            kdims=['Group'],
-            vdims=['value'],
-        ).opts(
-            box_fill_color='lightgray',
-            outlier_alpha=0,
-        )
+        df_small = df_func_plot.loc[df_func_plot.variable == func_assay]
 
-    return box * strip
+        source = bokeh.models.ColumnDataSource(df_small)
+
+        p = iqplot.stripbox(data=df_small, 
+                            q="value", 
+                            cats="Treatment", 
+                            q_axis='y', 
+                            jitter=True,
+                            marker_kwargs={"size": 8, "line_color": "black"},
+                            jitter_kwargs={'width': 0.25},
+                            #tooltips=[('Sample', '@Sample'), ('Fluor', '@value{0.000}')],
+                            toolbar_location="right",
+                            height=450,
+                            width=550,
+                            y_axis_type="log",
+                            x_axis_label="Group",
+                            y_axis_label="MFI",
+                            title=assay_abbreviation_dict[func_assay],
+                           )
+
+        plots.append(p)
+        
+    return bokeh.layouts.gridplot(plots, ncols=2, merge_tools=False)
 
 
 def zscore_heatmap(df):
@@ -221,7 +196,7 @@ def zscore_heatmap(df):
                               x_range=list(df_hm.variable.unique()), 
                               y_range=list(df_hm.Sample.unique())[::-1],
                               toolbar_location=None, x_axis_location="above",
-                              tools=[bokeh.models.HoverTool(tooltips=[('Group', '@Treatment'), ('Z-Score', '@value{0.000}'), ('', '@variable')])])
+                              tools=[bokeh.models.HoverTool(tooltips=[('Treatment', '@Treatment'), ('Z-Score', '@value{0.000}'), ('', '@variable')])])
 
     p.rect(x="variable", y="Sample", width=1, height=1, source=source,
            line_color="white", 
@@ -251,11 +226,13 @@ dash3 = zscore_heatmap(df)
 tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
 
 
-tab2 = pn.Row(pn.layout.HSpacer(),
-              pn.Column(pn.layout.VSpacer(), assay_select, pn.Spacer(height=50), groups_toggle, pn.layout.VSpacer()), 
-              pn.Spacer(width=40),
-              func_strip_boxplot,
-              pn.layout.HSpacer())
+# tab2 = pn.Row(pn.layout.HSpacer(),
+#               pn.Column(pn.layout.VSpacer(), assay_select, pn.Spacer(height=50), pn.layout.VSpacer()), 
+#               pn.Spacer(width=40),
+#               func_strip_boxplot,
+#               pn.layout.HSpacer())
+
+tab2 = pn.Row(pn.layout.HSpacer(), func_strip_boxplot(), pn.layout.HSpacer())
 
 tab3 = pn.Row(pn.layout.HSpacer(), dash3, pn.layout.HSpacer())
 
