@@ -243,7 +243,7 @@ def pls_regression(df_log, viral_load_corr, index, num_components=3, title=""):
     sns.regplot(x="pred", y="actual", data=df_plot, ax=ax, ci=95)
     ax.set_xlabel("Predicted", fontsize=12)
     ax.set_ylabel("Actual", fontsize=12)
-    ax.set_title(f"{title} \n Components = {num_components}, Pearson Correlation = {round(pearson, 4)}", fontsize=16)
+    ax.set_title(f"{title} \n {num_components} Latent Variables, Pearson ρ = {round(pearson, 4)}", fontsize=16)
     
     plt.close()
     
@@ -296,8 +296,8 @@ def loo_cv(df_log, lung_corr_df, NT_corr_df, full_features=False):
     ax.plot(np.arange(1, max_features+1), scores_lst_lung, label="Lung")
     ax.plot(np.arange(1, max_features+1), scores_lst_NT, label="NT")
     
-    ax.set_title("Mean Absolute Error in Leave-One-Out Cross Validation")
-    ax.set_xlabel("Number of Predictors")
+    ax.set_title("Mean Absolute Error in Leave-One-Out Cross Validation of PLS-R")
+    ax.set_xlabel("Number of Latent Variables")
     ax.set_ylabel("Mean MAE")
 
     plt.legend()
