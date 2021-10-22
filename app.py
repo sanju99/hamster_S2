@@ -213,19 +213,41 @@ NT_correlation = df_corr_drop.corrwith(df_log["NT (log10 pfu/g)"])
 lung_corr_df = pd.DataFrame({"Feature": lung_correlation.index, "Correlation": lung_correlation.values}).sort_values(by="Correlation")
 NT_corr_df = pd.DataFrame({"Feature": NT_correlation.index, "Correlation": NT_correlation.values}).sort_values(by="Correlation")
 
+components_slider_lung = pn.widgets.IntSlider(name='Number of Components for Lung', start=1, end=8, step=1, value=4)
+components_slider_NT = pn.widgets.IntSlider(name='Number of Components for NT', start=1, end=8, step=1, value=4)
+
+
+@pn.depends(components_slider_lung.param.value_throttled)
+def lung_regression(plsr_components=3):
+    
+    return pls_regression(df_log, lung_corr_df, -2, num_components=plsr_components, title="Lung Viral Load Model")
+
+@pn.depends(components_slider_NT.param.value_throttled)
+def NT_regression(plsr_components=3):
+    
+    return pls_regression(df_log, NT_corr_df, -1, num_components=plsr_components, title="Nasal Turbinate Viral Load Model")
+
+
 # based on LOO cross-validation
 num_components = 3
 
 # Linear model of the features computed above
-tab5 = pn.Row(pn.layout.HSpacer(),
-              pn.Column(pn.Row(
-                                pn.Column(pn.Spacer(height=30), correlation_plot(lung_corr_df, "Lung Viral Load Correlates")), 
-                                pls_regression(df_log, lung_corr_df, -2, num_components, "Lung Viral Load Model")),
-                        pn.Row(
-                                pn.Column(pn.Spacer(height=30), correlation_plot(NT_corr_df, "Nasal Turbinate Viral Load Correlates")),
-                                pls_regression(df_log, NT_corr_df, -1, num_components, "Nasal Turbinate Viral Load Model"))
-                       ),
-              pn.layout.HSpacer())
+tab5_row1 = pn.Row(
+    pn.layout.HSpacer(),
+    pn.Column(correlation_plot(lung_corr_df, "Lung Viral Load Correlates"), 
+              correlation_plot(NT_corr_df, "Nasal Turbinate Viral Load Correlates")),
+    
+    loo_cv(df_log, lung_corr_df, NT_corr_df),
+    pn.layout.HSpacer()
+)
+
+tab5_row2 = pn.Row(pn.layout.HSpacer(),
+                   pn.Column(components_slider_lung, lung_regression),
+                   pn.Column(components_slider_NT, NT_regression),
+                   pn.layout.HSpacer()
+                  )
+    
+tab5 = pn.Column(tab5_row1, tab5_row2)
 
 # Flower plots
 col_names = ["Immunization", "Sample"] + list(df.columns[df.columns.str.contains("|".join(["S2", "AD"]))])

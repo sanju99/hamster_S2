@@ -21,6 +21,7 @@ pn.extension()
 from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
 from bokeh.transform import transform
 from sklearn.cross_decomposition import PLSRegression
+from sklearn.model_selection import LeaveOneOut, cross_val_score
 
 
 def log_transform_data(df):
@@ -245,4 +246,60 @@ def pls_regression(df_log, viral_load_corr, index, num_components=3, title=""):
     
     plt.close()
     
+    return pn.pane.Matplotlib(fig)
+
+
+def loo_cv(df_log, lung_corr_df, NT_corr_df, full_features=False):
+    
+    df_model = df_log[df_log.columns[df_log.columns.str.contains("|".join(["_", "AD"]))]]
+
+    if full_features:
+        X_lung = df_model.values
+        X_NT = df_model.values
+    else:
+        X_lung = df_model[lung_corr_df.Feature].values
+        X_NT = df_model[NT_corr_df.Feature].values
+    
+    # maximum features for testing here is N / 2 = 8. Realistically, the maximum number of predictors should be more like 4
+    max_features = int(len(df_model)/2)
+
+    loo_lung = LeaveOneOut()
+    loo_NT = LeaveOneOut()
+    
+    loo_lung.get_n_splits(X_lung)
+    loo_NT.get_n_splits(X_NT)
+
+    scores_lst_lung = []
+    scores_lst_NT = []
+
+    y_lung = df_log.iloc[:, -2].values
+    y_NT = df_log.iloc[:, -1].values
+    
+    # With N samples and uncorrelated features, a reasonable number of predictors is N-1
+    # With N samples and uncorrelated features, a reasonable number of predictors is sqrt(N)    
+    for i in range(1, max_features+1):
+
+        pls2 = PLSRegression(n_components=i)
+
+        scores_lung = cross_val_score(pls2, X_lung, y_lung, scoring='neg_mean_absolute_error',
+                             cv=loo_lung, n_jobs=-1)
+        scores_NT = cross_val_score(pls2, X_NT, y_NT, scoring='neg_mean_absolute_error',
+                             cv=loo_NT, n_jobs=-1)
+
+        # Mean of mean absolute error -- compute mean absolute error, then take mean of the absolute value
+        scores_lst_lung.append(np.mean(abs(scores_lung)))
+        scores_lst_NT.append(np.mean(abs(scores_NT)))
+        
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    ax.plot(np.arange(1, max_features+1), scores_lst_lung, label="Lung")
+    ax.plot(np.arange(1, max_features+1), scores_lst_NT, label="NT")
+    
+    ax.set_title("Mean Absolute Error in Leave-One-Out Cross Validation")
+    ax.set_xlabel("Number of Predictors")
+    ax.set_ylabel("Mean MAE")
+
+    plt.legend()
+    
+    plt.close()
     return pn.pane.Matplotlib(fig)
