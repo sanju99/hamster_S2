@@ -239,7 +239,7 @@ def pls_regression(df_log, viral_load_corr, index, num_components=3, title=""):
         
     fig, ax = plt.subplots(figsize=(8, 7))
     
-    sns.set_style("whitegrid")
+    sns.set_style("white")
     sns.regplot(x="pred", y="actual", data=df_plot, ax=ax, ci=95)
     ax.set_xlabel("Predicted", fontsize=12)
     ax.set_ylabel("Actual", fontsize=12)
