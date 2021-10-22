@@ -7,3 +7,4 @@ holoviews
 panel
 tornado
 iqplot
+sklearn
