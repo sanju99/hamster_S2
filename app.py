@@ -210,17 +210,20 @@ df_corr_drop = df_log[df_log.columns[~df_log.columns.str.contains("|".join(["pfu
 lung_correlation = df_corr_drop.corrwith(df_log["Lung (log10 pfu/g)"])
 NT_correlation = df_corr_drop.corrwith(df_log["NT (log10 pfu/g)"])
 
-lung_corr_df = pd.DataFrame({"Variable": lung_correlation.index, "Correlation": lung_correlation.values}).sort_values(by="Correlation")
-NT_corr_df = pd.DataFrame({"Variable": NT_correlation.index, "Correlation": NT_correlation.values}).sort_values(by="Correlation")
+lung_corr_df = pd.DataFrame({"Feature": lung_correlation.index, "Correlation": lung_correlation.values}).sort_values(by="Correlation")
+NT_corr_df = pd.DataFrame({"Feature": NT_correlation.index, "Correlation": NT_correlation.values}).sort_values(by="Correlation")
+
+# based on LOO cross-validation
+num_components = 3
 
 # Linear model of the features computed above
 tab5 = pn.Row(pn.layout.HSpacer(),
               pn.Column(pn.Row(
-                                pn.Column(pn.Spacer(height=25), correlation_plot(lung_corr_df, "Lung Viral Load Correlates")), 
-                                pls_regression(df_log, lung_corr_df, -2, 4, "Lung Viral Load Model")),
+                                pn.Column(pn.Spacer(height=30), correlation_plot(lung_corr_df, "Lung Viral Load Correlates")), 
+                                pls_regression(df_log, lung_corr_df, -2, num_components, "Lung Viral Load Model")),
                         pn.Row(
-                                pn.Column(pn.Spacer(height=25), correlation_plot(NT_corr_df, "Nasal Turbinate Viral Load Correlates")),
-                                pls_regression(df_log, NT_corr_df, -1, 4, "Nasal Turbinate Viral Load Model"))
+                                pn.Column(pn.Spacer(height=30), correlation_plot(NT_corr_df, "Nasal Turbinate Viral Load Correlates")),
+                                pls_regression(df_log, NT_corr_df, -1, num_components, "Nasal Turbinate Viral Load Model"))
                        ),
               pn.layout.HSpacer())
 

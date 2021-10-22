@@ -28,7 +28,9 @@ def log_transform_data(df):
     This function log-transforms the non-log-transformed data in the dataframe
     '''
     
-    return pd.concat([df[["Challenge", "Immunization", "Sample"]], np.log10(df.iloc[:, 3:-2]), df.iloc[:, -2:]], axis=1)
+    return pd.concat([df[["Challenge", "Immunization", "Sample"]], 
+                      np.log10(df[df.columns[df.columns.str.contains("|".join(["_", "AD"]))]]), 
+                      df[df.columns[df.columns.str.contains("pfu")]]], axis=1)
 
 
 
@@ -200,7 +202,7 @@ def zscore_heatmap(df):
 def correlation_plot(corr_df, title=""):
     
     corr_plot = hv.Bars(corr_df, 
-            kdims=['Variable'], 
+            kdims=['Feature'], 
             vdims=["Correlation"]
            ).opts(height=450,
                   width=1000,
@@ -209,7 +211,7 @@ def correlation_plot(corr_df, title=""):
                   fill_color="#1f77b4",
                   ylabel="Spearman Correlation",
                   title=title,
-                  tools=[bokeh.models.HoverTool(tooltips=[('', '@Correlation{0.0000}'), ('', '@Variable')])],
+                  tools=[bokeh.models.HoverTool(tooltips=[('', '@Correlation{0.0000}'), ('', '@Feature')])],
         )
 
     p = hv.render(corr_plot)
@@ -219,18 +221,14 @@ def correlation_plot(corr_df, title=""):
     return p
 
 
-def pls_regression(df_log, viral_load_corr, index, num_features=4, title=""):
+def pls_regression(df_log, viral_load_corr, index, num_components=3, title=""):
     
-    df_model = df_log.iloc[:, 3:-2]
+    df_model = df_log[df_log.columns[df_log.columns.str.contains("|".join(["_", "AD"]))]]
     
-    # use the features that correlated best with viral load
-    X = df_model[viral_load_corr.iloc[:num_features, 0].values].values
-    
-    # use all the features
-    #X = df_model.values
+    X = df_model[viral_load_corr.Feature].values
     y = df_log.iloc[:, index].values
 
-    pls2 = PLSRegression(n_components=num_features)
+    pls2 = PLSRegression(n_components=num_components)
     pls2.fit(X, y)
     Y_pred = pls2.predict(X)
     
@@ -243,7 +241,7 @@ def pls_regression(df_log, viral_load_corr, index, num_features=4, title=""):
     sns.regplot(x="pred", y="actual", data=df_plot, ax=ax, ci=95)
     ax.set_xlabel("Predicted", fontsize=12)
     ax.set_ylabel("Actual", fontsize=12)
-    ax.set_title(f"{title}, Pearson Correlation = {round(pearson, 4)}", fontsize=16)
+    ax.set_title(f"{title} \n Components = {num_components}, Pearson Correlation = {round(pearson, 4)}", fontsize=16)
     
     plt.close()
     
