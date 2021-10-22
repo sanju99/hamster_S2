@@ -1,13 +1,8 @@
 import numpy as np
 import pandas as pd
 
-import scipy.stats as st
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-import bokeh.io
-import bokeh.plotting
 import bokeh.models
+import bokeh.palettes
 
 import holoviews as hv
 hv.extension("bokeh")
@@ -17,10 +12,6 @@ import iqplot
 
 import panel as pn
 pn.extension()
-
-from bokeh.models import BasicTicker, ColorBar, LinearColorMapper, PrintfTickFormatter
-from bokeh.transform import transform
-from sklearn.cross_decomposition import PLSRegression
 
 from utils import *
 
@@ -213,8 +204,8 @@ NT_correlation = df_corr_drop.corrwith(df_log["NT (log10 pfu/g)"])
 lung_corr_df = pd.DataFrame({"Feature": lung_correlation.index, "Correlation": lung_correlation.values}).sort_values(by="Correlation")
 NT_corr_df = pd.DataFrame({"Feature": NT_correlation.index, "Correlation": NT_correlation.values}).sort_values(by="Correlation")
 
-components_slider_lung = pn.widgets.IntSlider(name='Number of Components for Lung', start=1, end=8, step=1, value=4)
-components_slider_NT = pn.widgets.IntSlider(name='Number of Components for NT', start=1, end=8, step=1, value=4)
+components_slider_lung = pn.widgets.IntSlider(name='Number of Components for Lung', start=1, end=8, step=1, value=3)
+components_slider_NT = pn.widgets.IntSlider(name='Number of Components for NT', start=1, end=8, step=1, value=3)
 
 
 @pn.depends(components_slider_lung.param.value_throttled)
