@@ -223,8 +223,11 @@ def pls_regression(df_log, viral_load_corr, index, num_features=4, title=""):
     
     df_model = df_log.iloc[:, 3:-2]
     
-    #X = df_model[viral_load_corr.iloc[:num_features, 0].values].values
-    X = df_model.values
+    # use the features that correlated best with viral load
+    X = df_model[viral_load_corr.iloc[:num_features, 0].values].values
+    
+    # use all the features
+    #X = df_model.values
     y = df_log.iloc[:, index].values
 
     pls2 = PLSRegression(n_components=num_features)
