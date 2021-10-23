@@ -234,9 +234,10 @@ def NT_plsr(plsr_components=3):
 
 tab6 = pn.Row(pn.layout.HSpacer(),
               pn.Column(pn.Row(pn.Column(pn.layout.VSpacer(), components_slider_lung, pn.layout.VSpacer()), lung_plsr),
-              pn.Row(pn.Column(pn.layout.VSpacer(), components_slider_NT, pn.layout.VSpacer()), NT_plsr),
+                        pn.Row(pn.Column(pn.layout.VSpacer(), components_slider_NT, pn.layout.VSpacer()), NT_plsr)
+              ),
               pn.layout.HSpacer(),              
-              )
+)
 
 
 @pn.depends(ag_select.param.value)
