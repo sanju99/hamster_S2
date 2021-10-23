@@ -210,7 +210,7 @@ def vip_scores_plot(vip_df, title=""):
                               x_axis_label="VIP",
                               height=550, width=450, 
                               title=title,
-                              toolbar_location="below",
+                              toolbar_location="right",
                              )
 
     source = bokeh.models.ColumnDataSource(vip_df)
