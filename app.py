@@ -27,12 +27,12 @@ df = df[df.columns[~df.columns.str.contains("Unnamed")]]
 
 luminex_cols = df.columns[df.columns.str.contains("_")]
 
-ag_lst = [name.split("_")[0] for name in luminex_cols]
-ab_fcr_lst = [name.split("_")[1] for name in luminex_cols]
+ag_lst = np.unique([name.split("_")[0] for name in luminex_cols])
+ab_fcr_lst = np.unique([name.split("_")[1] for name in luminex_cols])
 
 # make selection widgets
-ag_select = pn.widgets.Select(name='Select Antigen', options=list(np.unique(ag_lst)))
-ab_fcr_select = pn.widgets.Select(name='Select Ig or FcR', options=list(np.unique(ab_fcr_lst)))
+ag_select = pn.widgets.Select(name='Select Antigen', options=list(ag_lst))
+ab_fcr_select = pn.widgets.Select(name='Select Ig or FcR', options=list(ab_fcr_lst))
 ig_fcr_choose = pn.widgets.RadioButtonGroup(options=['Ig Titer', 'FcR Binding'], button_type='primary')
 box_plot_toggle = pn.widgets.Toggle(name="Show Box Plot", button_type="success")
 
@@ -204,52 +204,110 @@ NT_correlation = df_corr_drop.corrwith(df_log["NT (log10 pfu/g)"])
 lung_corr_df = pd.DataFrame({"Feature": lung_correlation.index, "Correlation": lung_correlation.values}).sort_values(by="Correlation")
 NT_corr_df = pd.DataFrame({"Feature": NT_correlation.index, "Correlation": NT_correlation.values}).sort_values(by="Correlation")
 
-components_slider_lung = pn.widgets.IntSlider(name='Number of Components for Lung', start=1, end=8, step=1, value=3)
-components_slider_NT = pn.widgets.IntSlider(name='Number of Components for NT', start=1, end=8, step=1, value=3)
+
+# based on LOO cross-validation
+# Linear model of the features computed above
+#loo_cv(df_log, lung_corr_df, NT_corr_df)
+
+tab5 = pn.Row(
+            pn.layout.HSpacer(),
+            spearman_corr_plot(lung_corr_df, "Lung Viral Load Correlates"), 
+            spearman_corr_plot(NT_corr_df, "Nasal Turbinate Viral Load Correlates"),
+            pn.layout.HSpacer(),
+)
+    
+components_slider_lung = pn.widgets.IntSlider(name='Number of Components for Lung', start=1, end=8, step=1, value=3, orientation="vertical", height=200)
+components_slider_NT = pn.widgets.IntSlider(name='Number of Components for NT', start=1, end=8, step=1, value=3, orientation="vertical", height=200)
 
 
 @pn.depends(components_slider_lung.param.value_throttled)
-def lung_regression(plsr_components=3):
+def lung_plsr(plsr_components=3):
     
-    return pls_regression(df_log, lung_corr_df, -2, num_components=plsr_components, title="Lung Viral Load Model")
+    # default is to show the 10 most important variables
+    return pls_regression(df_log, lung_corr_df, -2, plsr_components, title="Lung Viral Load PLS-R")
 
 @pn.depends(components_slider_NT.param.value_throttled)
-def NT_regression(plsr_components=3):
+def NT_plsr(plsr_components=3):
     
-    return pls_regression(df_log, NT_corr_df, -1, num_components=plsr_components, title="Nasal Turbinate Viral Load Model")
+    # default is to show the 10 most important variables
+    return pls_regression(df_log, NT_corr_df, -1, plsr_components, title="Nose Viral Load PLS-R")
+
+tab6 = pn.Column(pn.Row(pn.layout.HSpacer(),
+                        pn.Column(pn.layout.VSpacer(), components_slider_lung, pn.layout.VSpacer()),
+                        lung_plsr,
+                        pn.layout.HSpacer()),
+                 pn.Row(pn.layout.HSpacer(),
+                        pn.Column(pn.layout.VSpacer(), components_slider_NT, pn.layout.VSpacer()),
+                        NT_plsr,
+                        pn.layout.HSpacer())
+                )
 
 
-# based on LOO cross-validation
-num_components = 3
-
-# Linear model of the features computed above
-tab5_row1 = pn.Row(
-    pn.layout.HSpacer(),
-    pn.Column(correlation_plot(lung_corr_df, "Lung Viral Load Correlates"), 
-              correlation_plot(NT_corr_df, "Nasal Turbinate Viral Load Correlates")),
+@pn.depends(ag_select.param.value)
+def polar_area_plot(antigen="S2"):
+    '''
+    Make a polar area (flower) plot for each hamster
+    '''
     
-    loo_cv(df_log, lung_corr_df, NT_corr_df),
-    pn.layout.HSpacer()
-)
-
-tab5_row2 = pn.Row(pn.layout.HSpacer(),
-                   pn.Column(components_slider_lung, lung_regression),
-                   pn.Column(components_slider_NT, NT_regression),
-                   pn.layout.HSpacer()
-                  )
+    col_names = ["Immunization", "Sample"] + list(df_log.columns[df_log.columns.str.contains("|".join([antigen, "AD"]))])
     
-tab5 = pn.Column(tab5_row1, tab5_row2)
+    df_split = df_log[col_names].loc[df_log.Immunization == "S2 VLP"]
+    new_ordering = ["Immunization", "Sample"] + [antigen + "_" + target for target in ["IgG1", "IgG2", "IgA", "IgM", "FcγRIIb", "FcγRIII", "FcγRIV"]] + ['ADCD', 'mADCP', 'hADCP', 'hADNP']
+    
+    titles = df_split.Sample.values
+    del df_split["Immunization"]
+    del df_split["Sample"]
+    
+    variables = [df_split.columns[i].split("_")[-1] if "_" in df_split.columns[i] else df_split.columns[i] for i in range(len(df_split.columns))]
+    
+    # Compute pie slices
+    N = len(df_split.columns)
+    
+    theta = np.linspace(0, 2 * np.pi, N, endpoint=False)
+    width = 2 * np.pi / N
+
+    colors = ["purple" if "AD" in variables[k] else "orange" for k in range(len(df_split.columns))]
+
+    sns.set_style("dark")
+
+    fig, ax = plt.subplots(2, 4, figsize=(18, 9), subplot_kw={'projection': 'polar'}, constrained_layout=True)
+    ax = ax.flatten()
+    
+    for i in range(len(df_split)):
+
+        radii = df_split.iloc[i, :].values
+        
+        ax[i].set_title(titles[i], pad=50, fontsize=16)
+        ax[i].tick_params(axis='x', pad=10)
+
+        ax[i].bar(theta, 
+               radii, 
+               width=width,
+               bottom=0, 
+               color=colors,
+               edgecolor="black")
+
+        ax[i].set_yticklabels([])
+        ax[i].set_ylim([0, int(np.ceil(np.max(np.max(df_split))))])
+
+        ax[i].set_xticks(theta)
+        ax[i].set_xticklabels(variables)        
+
+        ax[i].tick_params(axis='both', which='major', labelsize=12)
+        
+    return pn.pane.Matplotlib(fig)
+
 
 # Flower plots
 col_names = ["Immunization", "Sample"] + list(df.columns[df.columns.str.contains("|".join(["S2", "AD"]))])
-flower_plots = polar_area_plot(df_log, col_names)
-tab6 = pn.Row(pn.layout.HSpacer(), flower_plots, pn.layout.HSpacer())
+tab7 = pn.Row(pn.layout.HSpacer(), pn.Column(ag_select, pn.Spacer(height=30), polar_area_plot), pn.layout.HSpacer())
 
 dashboard = pn.Tabs(('Luminex Plots', tab1), 
                     ("Functional Assays", tab2), 
                     ("Viral Loads", tab3), 
                     ("Z-Score Heatmap", tab4),
                     ("Significant Features", tab5),
-                    ("Flower Plots", tab6))
+                    ("PLS-R", tab6),
+                    ("Flower Plots", tab7))
 
 dashboard.servable()

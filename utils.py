@@ -85,60 +85,6 @@ def stripbox(df_plot, kdims_lst, abbrev_dict):
     return bokeh.layouts.gridplot(plots, ncols=2, merge_tools=False)
 
 
-def polar_area_plot(df_log, col_names):
-    '''
-    Make a polar area (flower) plot for each hamster
-    '''
-
-    df_split = df_log[col_names].sort_values(by="Immunization")
-    new_ordering = ["Immunization", "Sample", "S2_IgG1", "S2_IgG2", "S2_IgA", "S2_IgM", 'S2_FcγRIIb', 'S2_FcγRIII', 'S2_FcγRIV', 'ADCD', 'mADCP', 'hADCP', 'hADNP']
-    df_split = df_split[new_ordering]
-    
-    titles = df_split.Sample.values
-    del df_split["Immunization"]
-    del df_split["Sample"]
-    
-    variables = [df_split.columns[i].split("_")[-1] if "_" in df_split.columns[i] else df_split.columns[i] for i in range(len(df_split.columns))]
-    
-    # Compute pie slices
-    N = len(df_split.columns)
-    
-    theta = np.linspace(0, 2 * np.pi, N, endpoint=False)
-    width = 2 * np.pi / N
-
-    colors = ["purple" if "AD" in variables[k] else "orange" for k in range(len(df_split.columns))]
-
-    sns.set_style("dark")
-
-    fig, ax = plt.subplots(4, 4, figsize=(18, 18), subplot_kw={'projection': 'polar'}, constrained_layout=True)
-    ax = ax.flatten()
-    
-    for i in range(len(df_split)):
-
-        radii = df_split.iloc[i, :].values
-        
-        ax[i].set_title(titles[i], pad=50, fontsize=16)
-        ax[i].tick_params(axis='x', pad=10)
-
-        ax[i].bar(theta, 
-               radii, 
-               width=width,
-               bottom=0, 
-               color=colors,
-               edgecolor="black")
-
-        ax[i].set_yticklabels([])
-        ax[i].set_ylim([0, int(np.ceil(np.max(np.max(df_split))))])
-
-        ax[i].set_xticks(theta)
-        ax[i].set_xticklabels(variables)        
-
-        ax[i].tick_params(axis='both', which='major', labelsize=12)
-
-    plt.close()
-    return pn.pane.Matplotlib(fig)
-
-
 def zscore_heatmap(df):
     
     df_zscore = df.select_dtypes(include=np.number).apply(st.zscore)
@@ -202,31 +148,83 @@ def zscore_heatmap(df):
 
 def correlation_plot(corr_df, title=""):
     
-    corr_plot = hv.Bars(corr_df, 
-            kdims=['Feature'], 
-            vdims=["Correlation"]
-           ).opts(height=450,
-                  width=1000,
-                  ylim=(0, np.min(corr_df.Correlation)-0.05),
-                  xrotation=90,
-                  fill_color="#1f77b4",
-                  ylabel="Spearman Correlation",
-                  title=title,
-                  tools=[bokeh.models.HoverTool(tooltips=[('', '@Correlation{0.0000}'), ('', '@Feature')])],
-        )
+    p = bokeh.plotting.figure(x_range=(0, np.min(corr_df.Correlation)-0.05),
+                              y_range=corr_df.Feature.values[::-1],
+                              x_axis_label="Spearman Correlation",
+                              height=1000, width=450, 
+                              title=title,
+                              toolbar_location="below",
+                             )
 
-    p = hv.render(corr_plot)
-    p.toolbar_location = "above"
-    p.title.text_font_size = "16px"
+    source = bokeh.models.ColumnDataSource(corr_df)
+    p.hbar(y="Feature", right="Correlation", source=source, height=0.9)
+
+    # labels = bokeh.models.LabelSet(x='Correlation', y="Feature", text='Correlation',
+    #          x_offset=0.05, y_offset=0, source=source)
+
+    # p.add_layout(labels)
+    p.ygrid.grid_line_color = None
 
     return p
 
 
-def pls_regression(df_log, viral_load_corr, index, num_components=3, title=""):
+def calculate_vip_scores(model):
     
-    df_model = df_log[df_log.columns[df_log.columns.str.contains("|".join(["_", "AD"]))]]
+    t = model.x_scores_
+    w = model.x_weights_
+    q = model.y_loadings_
+    p, h = w.shape
+    vips = np.zeros((p,))
     
-    X = df_model[viral_load_corr.Feature].values
+    s = np.diag(np.matmul(np.matmul(np.matmul(t.T,t),q.T), q)).reshape(h, -1)
+    total_s = np.sum(s)
+    
+    for i in range(p):
+        weight = np.array([ (w[i,j] / np.linalg.norm(w[:,j]))**2 for j in range(h) ])
+        vips[i] = np.sqrt(p*(np.matmul(s.T, weight))/total_s)
+    
+    return vips
+
+
+def spearman_corr_plot(corr_df, title=""):
+    
+    p = bokeh.plotting.figure(x_range=(0, np.min(corr_df.Correlation)*1.1),
+                              y_range=corr_df.Feature.values[::-1],
+                              x_axis_label="Spearman Correlation",
+                              height=700, width=550, 
+                              title=title,
+                              toolbar_location="below",
+                             )
+
+    source = bokeh.models.ColumnDataSource(corr_df)
+    p.hbar(y="Feature", right="Correlation", source=source, height=0.9)
+    p.ygrid.grid_line_color = None
+
+    return p
+
+
+def vip_scores_plot(vip_df, title=""):
+    
+    p = bokeh.plotting.figure(x_range=(0, np.max(vip_df.VIP)*1.1),
+                              y_range=vip_df.Feature.values[::-1],
+                              x_axis_label="VIP",
+                              height=550, width=450, 
+                              title=title,
+                              toolbar_location="below",
+                             )
+
+    source = bokeh.models.ColumnDataSource(vip_df)
+    p.hbar(y="Feature", right="VIP", source=source, height=0.8)
+    p.ygrid.grid_line_color = None
+
+    return p
+
+
+def pls_regression(df_log, viral_load_corr, index, num_components=3, title="", num_vip=10):
+    
+    df_model = df_log[df_log.columns[df_log.columns.str.contains("|".join(["_", "AD"]))]][viral_load_corr.Feature]
+    
+    X = df_model.values
     y = df_log.iloc[:, index].values
 
     pls2 = PLSRegression(n_components=num_components)
@@ -243,11 +241,15 @@ def pls_regression(df_log, viral_load_corr, index, num_components=3, title=""):
     sns.regplot(x="pred", y="actual", data=df_plot, ax=ax, ci=95)
     ax.set_xlabel("Predicted", fontsize=12)
     ax.set_ylabel("Actual", fontsize=12)
-    ax.set_title(f"{title} \n {num_components} Latent Variables, Pearson ρ = {round(pearson, 4)}", fontsize=16)
-    
+    ax.set_title(f"{title} \n \n {num_components} Latent Variables, Pearson ρ = {round(pearson, 4)}", fontsize=16)
+
+    df_vip = pd.DataFrame({"Feature": df_model.columns[:num_vip], "VIP": calculate_vip_scores(pls2)[:num_vip]})
+    df_vip = df_vip.sort_values(by="VIP", ascending=False)
+ 
     plt.close()
     
-    return pn.pane.Matplotlib(fig)
+    return pn.Row(pn.pane.Matplotlib(fig), vip_scores_plot(df_vip, f"PLS-R {num_vip} Highest VIP Scores"))
+
 
 
 def loo_cv(df_log, lung_corr_df, NT_corr_df, full_features=False):
