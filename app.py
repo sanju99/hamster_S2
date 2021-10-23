@@ -232,15 +232,11 @@ def NT_plsr(plsr_components=3):
     # default is to show the 10 most important variables
     return pls_regression(df_log, NT_corr_df, -1, plsr_components, title="Nose Viral Load PLS-R")
 
-tab6 = pn.Column(pn.Row(pn.layout.HSpacer(),
-                        pn.Column(pn.layout.VSpacer(), components_slider_lung, pn.layout.VSpacer()),
-                        lung_plsr,
-                        pn.layout.HSpacer()),
-                 pn.Row(pn.layout.HSpacer(),
-                        pn.Column(pn.layout.VSpacer(), components_slider_NT, pn.layout.VSpacer()),
-                        NT_plsr,
-                        pn.layout.HSpacer())
-                )
+tab6 = pn.Row(pn.layout.HSpacer(),
+              pn.Column(pn.Row(pn.Column(pn.layout.VSpacer(), components_slider_lung, pn.layout.VSpacer()), lung_plsr),
+              pn.Row(pn.Column(pn.layout.VSpacer(), components_slider_NT, pn.layout.VSpacer()), NT_plsr),
+              pn.layout.HSpacer(),              
+              )
 
 
 @pn.depends(ag_select.param.value)
