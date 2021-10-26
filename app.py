@@ -186,10 +186,10 @@ dash2 = pn.Column(ab_fcr_select, pn.Spacer(height=30), ig_fcr_strip_plot)
 tab1 = pn.Row(pn.layout.HSpacer(), pn.Column(dash1, pn.Spacer(height=20), dash2), pn.layout.HSpacer())
 
 # Functional assays
-tab2 = pn.Row(pn.layout.HSpacer(), stripbox(df_func_plot, ["Immunization"], assay_abbreviation_dict), pn.layout.HSpacer())
+tab2 = pn.Row(pn.layout.HSpacer(), func_stripbox(df_func_plot, assay_abbreviation_dict), pn.layout.HSpacer())
 
 # Viral Loads
-tab3 = pn.Row(pn.layout.HSpacer(), stripbox(df_challenge_plot, ["Immunization", "Challenge"], compartment_abbreviation_dict), pn.layout.HSpacer())
+tab3 = pn.Row(pn.layout.HSpacer(), viral_load_stripbox(df_challenge_plot, compartment_abbreviation_dict), pn.layout.HSpacer())
 
 # Z Scores of all the data
 df_log = log_transform_data(df)

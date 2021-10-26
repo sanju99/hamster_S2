@@ -35,7 +35,38 @@ def log_transform_data(df):
 
 
 
-def stripbox(df_plot, kdims_lst, abbrev_dict):
+def func_stripbox(df_plot, abbrev_dict):
+    
+    plots = []
+    
+    for key in abbrev_dict.keys():
+
+        df_small = df_plot.loc[df_plot.variable == key]
+                
+        plots.append(iqplot.stripbox(
+                            data=df_small, 
+                            q="value", 
+                            cats=["Immunization"], 
+                            q_axis='y', 
+                            jitter=True,
+                            marker_kwargs={"size": 8, "line_color": "black"},
+                            jitter_kwargs={"width": 0.25},
+                            height=450,
+                            width=550,
+                            x_axis_label="Immunization",
+                            y_axis_label="MFI",
+                            y_axis_type="log",
+                            title=abbrev_dict[key],
+                            tooltips=[('Sample', '@Sample')],
+                            toolbar_location="above"
+                           )
+                    )
+        
+    return bokeh.layouts.gridplot(plots, ncols=2, merge_tools=False)
+
+
+
+def viral_load_stripbox(df_plot, abbrev_dict):
     
     plots = []
     
@@ -46,16 +77,17 @@ def stripbox(df_plot, kdims_lst, abbrev_dict):
        # make box plot
         box = hv.BoxWhisker(
             data=df_small,
-            kdims=kdims_lst,
+            kdims=["Immunization", "Challenge"],
             vdims='value',
         ).opts(
-            ylabel="MFI",
+            ylabel="Log10 (PFU/g)",
             whisker_color='gray',
             box_line_color="gray",
             box_fill_color="white",
             height=500,
             width=600,
             outlier_alpha=0,
+            logy=True,
             title = abbrev_dict[key],
             fontsize={'labels': 11, 'xticks': 10, 'yticks': 10}
         )
@@ -63,11 +95,14 @@ def stripbox(df_plot, kdims_lst, abbrev_dict):
         # extract bokeh object
         p = hv.render(box)
         p.toolbar_location = "above"
+        
+        p.toolbar.logo = None
+        p.toolbar_location = None
                 
         plots.append(iqplot.strip(p=p,
                             data=df_small, 
                             q="value", 
-                            cats=kdims_lst, 
+                            cats=["Immunization", "Challenge"], 
                             q_axis='y', 
                             jitter=True,
                             marker_kwargs={"size": 8, "line_color": "black"},
@@ -75,8 +110,7 @@ def stripbox(df_plot, kdims_lst, abbrev_dict):
                             height=450,
                             width=550,
                             y_axis_type="log",
-                            x_axis_label="Challenge Variant",
-                            y_axis_label="MFI",
+                            color_column="Immunization",
                             title=abbrev_dict[key],
                             tooltips=[('Sample', '@Sample')],
                            )
