@@ -4,6 +4,5 @@ App: https://hamster-s2.herokuapp.com/app
 
 The app is password protected. Please use the following credentials
 
-Username: systems
-
+Username: systems<br>
 Password: serology
