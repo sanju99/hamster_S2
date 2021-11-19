@@ -216,21 +216,21 @@ tab5 = pn.Row(
             pn.layout.HSpacer(),
 )
     
-components_slider_lung = pn.widgets.IntSlider(name='# of Components', start=1, end=8, step=1, value=3, orientation="vertical", height=200)
-components_slider_NT = pn.widgets.IntSlider(name='# of Components', start=1, end=8, step=1, value=3, orientation="vertical", height=200)
+components_slider_lung = pn.widgets.IntSlider(name='# of Components', start=8, end=1, step=1, value=3, orientation="vertical", height=200)
+components_slider_NT = pn.widgets.IntSlider(name='# of Components', start=8, end=1, step=1, value=3, orientation="vertical", height=200)
 
 
 @pn.depends(components_slider_lung.param.value_throttled)
 def lung_plsr(plsr_components=3):
     
     # default is to show the 10 most important variables
-    return pls_regression(df_log, lung_corr_df, -2, plsr_components, title="Lung Viral Load PLS-R")
+    return pls_regression(df_log, lung_corr_df, -2, plsr_components, title="PLS-R Actual and Predicted Lung Viral Loads")
 
 @pn.depends(components_slider_NT.param.value_throttled)
 def NT_plsr(plsr_components=3):
     
     # default is to show the 10 most important variables
-    return pls_regression(df_log, NT_corr_df, -1, plsr_components, title="Nose Viral Load PLS-R")
+    return pls_regression(df_log, NT_corr_df, -1, plsr_components, title="PLS-R Actual and Predicted Nasal Viral Loads")
 
 tab6 = pn.Row(pn.layout.HSpacer(),
               pn.Column(pn.Row(pn.Column(pn.layout.VSpacer(), components_slider_lung, pn.layout.VSpacer()), lung_plsr),
