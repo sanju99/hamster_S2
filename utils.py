@@ -277,10 +277,9 @@ def pls_regression(df_log, viral_load_corr, index, num_components=3, title="", n
     ax.set_ylabel("Actual", fontsize=12)
     ax.set_title(f"{title} \n \n {num_components} Latent Variables, Pearson ρ = {round(pearson, 4)}", fontsize=16)
 
-    # df_vip = pd.DataFrame({"Feature": df_model.columns[:num_vip], "VIP": calculate_vip_scores(pls2)[:num_vip]})
-    # df_vip = df_vip.sort_values(by="VIP", ascending=False)
-    
-    
+    # VIP scores are a measure of how much a variable contributes to the group separation
+    df_vip = pd.DataFrame({"Feature": df_model.columns[:num_vip], "VIP": calculate_vip_scores(pls2)[:num_vip]})
+    df_vip = df_vip.sort_values(by="VIP", ascending=False)
  
     plt.close()
     
