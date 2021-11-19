@@ -240,7 +240,9 @@ tab6 = pn.Row(pn.layout.HSpacer(),
 )
 
 
-@pn.depends(ag_select.param.value)
+# most of the responses look the same across antigens, so show only S2 (don't need the interactivity unless someone changes the code to see) 
+
+#@pn.depends(ag_select.param.value)
 def polar_area_plot(antigen="S2"):
     '''
     Make a polar area (flower) plot for each hamster
@@ -297,7 +299,8 @@ def polar_area_plot(antigen="S2"):
 
 # Flower plots
 col_names = ["Immunization", "Sample"] + list(df.columns[df.columns.str.contains("|".join(["S2", "AD"]))])
-tab7 = pn.Row(pn.layout.HSpacer(), pn.Column(ag_select, pn.Spacer(height=30), polar_area_plot), pn.layout.HSpacer())
+#tab7 = pn.Row(pn.layout.HSpacer(), pn.Column(ag_select, pn.Spacer(height=30), polar_area_plot), pn.layout.HSpacer())
+tab7 = pn.Row(pn.layout.HSpacer(), polar_area_plot, pn.layout.HSpacer())
 
 dashboard = pn.Tabs(('Luminex Plots', tab1), 
                     ("Functional Assays", tab2), 
